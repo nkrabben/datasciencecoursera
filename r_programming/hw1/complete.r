@@ -12,4 +12,18 @@ complete <- function(directory, id = 1:332) {
         ## ...
         ## where 'id' is the monitor ID number and 'nobs' is the
         ## number of complete cases
+        
+        file_list <- list.files(directory, full.names=T)
+        
+        dat <- data.frame()
+        
+        for (i in id) {
+                df <- read.csv(file_list[i])
+                nobs <- sum(complete.cases(df))
+                dat <- rbind(dat, c(i, nobs))
+        }
+        
+        colnames(dat) <- c('id', 'nobs')
+        
+        return(dat)
 }

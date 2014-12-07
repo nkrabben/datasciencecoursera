@@ -8,4 +8,20 @@ corr <- function(directory, threshold = 0) {
         ## nitrate and sulfate; the default is 0
         
         ## Return a numeric vector of correlations
+        
+        file_list <- list.files(directory, full.names=T)
+        
+        dat <- vector()
+        
+        for (i in file_list) {
+                df <- read.csv(i)
+                nobs <- sum(complete.cases(df))
+                if (nobs > threshold){
+                        dat <- c(dat, cor(df$sulfate, df$nitrate, use='complete.obs'))
+                }
+        }
+        
+        return(dat)
+        
+        #return(lapply(cormean(dat[,pollutant], na.rm=T))
 }

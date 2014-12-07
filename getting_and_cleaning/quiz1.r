@@ -43,11 +43,18 @@ fHouse2<-'housing2.csv'
 download.file(fHouse2URL, destfile=fHouse2,method='curl')
 DT <-fread(fHouse2)
 
+
+DT[,mean(pwgtp15),by=SEX]
+mean(DT$pwgtp15,by=DT$SEX)
+rowMeans(DT)[DT$SEX==1]; rowMeans(DT)[DT$SEX==2]
+tapply(DT$pwgtp15,DT$SEX,mean)
+sapply(split(DT$pwgtp15,DT$SEX),mean)
+mean(DT[DT$SEX==1,]$pwgtp15); mean(DT[DT$SEX==2,]$pwgtp15)
+
 trial_size <- 200
 collected_results <- numeric(trial_size)
-tapply(DT$pwgtp15,DT$SEX,mean)
 for (i in 1:trial_size){
-        single_function_time <- system.time(tapply(DT$pwgtp15,DT$SEX,mean))
+        single_function_time <- system.time(mean(DT[DT$SEX==1,]$pwgtp15))
         collected_results[i] <- single_function_time[1]
 }
 print(mean(collected_results))

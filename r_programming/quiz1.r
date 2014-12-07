@@ -1,5 +1,5 @@
 #q4
-x <- 4
+x <- 4L
 print(class(x))
 
 #q5
@@ -9,7 +9,7 @@ print(class(x))
 #q6
 x <- c(1,3, 5)
 y <- c(3, 2, 10)
-cbind(x,y)
+print(rbind(x,y))
 
 #q8
 x <- list(2, "a", "b", TRUE)
