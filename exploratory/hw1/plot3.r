@@ -9,12 +9,12 @@ fPowerD <- check_grab()
 #check get_data.r
 df <- create_frame(fPowerD)
 
-png('plot3.png', bg='transparent', height=480, width=480)
+png('plot3.png', bg='transparent')
 with(df,plot(datetime, Sub_metering_1, type='n', ylab="Energy sub metering", xlab=''))
 #each line individually
-lines(df$datetime,df$Sub_metering_1)
-lines(df$datetime,df$Sub_metering_2, col='red')
-lines(df$datetime,df$Sub_metering_3, col='blue')
+lines(df$datetime, df$Sub_metering_1)
+lines(df$datetime, df$Sub_metering_2, col='red')
+lines(df$datetime, df$Sub_metering_3, col='blue')
 legend('topright', lty=c(1,1), col=c('black','red','blue'), legend = c('Sub_metering_1','Sub_metering_2','Sub_metering_3'))
 box()
 dev.off()

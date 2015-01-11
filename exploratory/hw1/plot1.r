@@ -9,7 +9,7 @@ fPowerD <- check_grab()
 #check get_data.r
 df <- create_frame(fPowerD)
 
-png('plot1.png', bg='transparent', height=480, width=480)
+png('plot1.png', bg='transparent')
 hist(df$Global_active_power, main="Global Active Power", col='red', xlab="Global Active Power (kilowatts)")
 par(mar=c(6,5,5,3), cex=0.8)
 dev.off()

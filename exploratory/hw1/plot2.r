@@ -9,7 +9,7 @@ fPowerD <- check_grab()
 #check get_data.r
 df <- create_frame(fPowerD)
 
-png('plot2.png', bg='transparent', height=480, width=480)
-with(df,plot(datetime,Global_active_power,type='l', ylab="Global Active Power (kilowatts)", xlab=''))
+png('plot2.png', bg='transparent')
+with(df,plot(datetime, Global_active_power, type='l', ylab="Global Active Power (kilowatts)", xlab=''))
 box()
 dev.off()
