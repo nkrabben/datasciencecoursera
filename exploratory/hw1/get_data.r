@@ -1,13 +1,13 @@
 setwd("~/dev/datasciencecoursera/exploratory/hw1")
 fPowerURL <- 'https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip'
-fPowerD <- '../../../data/household_power_consumption.zip'
+fPowerD <- '../household_power_consumption.zip'
 
 check_grab <- function() {
         if (!file.exists(fPowerD)) {
                 download.file(fPowerURL, destfile=fPowerD,method='curl')
                 unzip(fPowerD, exdir='../')
         }
-        return('../../../data/household_power_consumption.txt')
+        return('../household_power_consumption.txt')
 }
 
 create_frame <- function(file) {
@@ -16,7 +16,7 @@ create_frame <- function(file) {
                                          'Voltage','Global_intensity','Sub_metering_1','Sub_metering_2',
                                          'Sub_metering_3'))
         df$datetime <- paste(df$Date, df$Time, sep=' ')
-        df$datetime = strptime(df$datetime,format="%d/%m/%Y %H:%M:%S")
+        df$datetime =strptime(df$datetime,format="%d/%m/%Y %H:%M:%S")
         
         return(df)
 }

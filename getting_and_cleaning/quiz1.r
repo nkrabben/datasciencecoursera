@@ -54,7 +54,7 @@ mean(DT[DT$SEX==1,]$pwgtp15); mean(DT[DT$SEX==2,]$pwgtp15)
 trial_size <- 200
 collected_results <- numeric(trial_size)
 for (i in 1:trial_size){
-        single_function_time <- system.time(mean(DT[DT$SEX==1,]$pwgtp15))
+        single_function_time <- system.time(sapply(split(DT$pwgtp15,DT$SEX),mean))
         collected_results[i] <- single_function_time[1]
 }
 print(mean(collected_results))
