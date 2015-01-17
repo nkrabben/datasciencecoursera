@@ -57,5 +57,5 @@ levels(dt.meanstds$variable) <- variable.names
 #Creates a second, independent tidy data set with the average of each variable for each activity and each subject. 
 dt.tidymeanstds <- dcast(dt.meanstds, subject + activity ~ variable, mean)
 
-write.table(dt.tidymeanstds, file="tidy.csv")
+write.table(dt.tidymeanstds, file = "tidy.csv", row.names = F)
 
