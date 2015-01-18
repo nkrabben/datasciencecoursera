@@ -1,6 +1,8 @@
-setup <- function(wd, data) {
+setup <- function(wd, datadir) {
         setwd(wd)
-        dir.create(file.path('~/dev/data/', data), showWarnings = FALSE)
+        
+        datadir <- paste0('~/dev/data/', datadir, '/')
+        dir.create(file.path(datadir), showWarnings = FALSE)
           
         return(datadir)
 }
