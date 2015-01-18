@@ -1,3 +1,6 @@
+library(data.table)
+library(reshape2)
+
 #Merge the training and the test sets to create one data set.
 # check for data, and download if not available
 if (!file.exists("getdata_projectfiles_UCI HAR Dataset.zip")) {
