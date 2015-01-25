@@ -7,6 +7,6 @@ setup <- function(wd, datadir) {
         return(datadir)
 }
 
-cleanup <- function(data) {
-        unlink(paste0('~/dev/data/', data))       
+cleanup <- function(datadir) {
+        unlink(datadir)       
 }

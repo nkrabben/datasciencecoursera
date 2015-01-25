@@ -1,12 +1,13 @@
 library(data.table)
 library(reshape2)
+library(dplyr)
 
 #Merge the training and the test sets to create one data set.
 # check for data, and download if not available
 if (!file.exists("getdata_projectfiles_UCI HAR Dataset.zip")) {
         download.file("https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip",
                       destfile="getdata_projectfiles_UCI HAR Dataset.zip",method='curl')
-        unzip("getdata_projectfiles_UCI HAR Dataset.zip", exdir='../')
+        unzip("getdata_projectfiles_UCI HAR Dataset.zip")
 }
 
 # bind columns from the measurements, test run, and subjects for test and training sets
@@ -43,17 +44,21 @@ dt.meanstds <- melt(dt.total, id.vars = c(1, 2), measure.vars = c(col.means, col
 dt.activities <- read.table("UCI HAR Dataset/activity_labels.txt", col.names=c('activity', 'name'),
                             stringsAsFactors = F)
 dt.activities$name <- tolower(dt.activities$name)
+dt.activities$name <- gsub('_', '', dt.activities$name)
 dt.meanstds$activity <- factor(dt.meanstds$activity)
 levels(dt.meanstds$activity) <- dt.activities$name
 
 #Appropriately labels the data set with descriptive activity names.
 variable.names <- levels(dt.meanstds$variable)
-# () is unsafe in R, drop
+# capitals are bad, switched to lower
+variable.names <- tolower(variable.names)
+# () is unsafe in R, deleted
 variable.names <- gsub('\\(|\\)','', variable.names)
-# - is unsafe in R, change to _
-variable.names <- gsub('-','_', variable.names)
 # switch order to that described in features
-variable.names <- gsub('(_mean|_std)(_[XYZ])','\\2\\1', variable.names)
+variable.names <- gsub('(-mean|-std)(-[xyz])','\\2\\1', variable.names)
+# - is unsafe in R, deleted
+variable.names <- gsub('-', '', variable.names)
+
 levels(dt.meanstds$variable) <- variable.names
 
 

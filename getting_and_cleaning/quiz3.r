@@ -46,3 +46,4 @@ tapply(df.mergeOrd$X5,df.mergeOrd$Income.Group,mean)
 library(Hmisc)
 df.mergeOrd$X5groups<-cut2(df.mergeOrd$X5,g=5)
 table(df.mergeOrd$Income.Group,df.mergeOrd$X5groups)
+
