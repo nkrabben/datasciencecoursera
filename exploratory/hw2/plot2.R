@@ -1,5 +1,6 @@
 # load libraries
 library(plyr)
+library(dplyr)
 
 # setup workspace
 source('~/dev/datasciencecoursera/utilities.r')
@@ -18,11 +19,9 @@ df.nei <- readRDS(paste0(datadir, 'summarySCC_PM25.rds'))
 # Use the base plotting system to make a plot answering this question.
 
 # take baltimore subset of all data
-df.bal <- df.nei[df.nei$fips == '24510', ]
-
-# create new data frame with sum of all measurements by year
-df.baltot <- ddply(df.bal, .(year), summarize, total = sum(Emissions), samples = length(year))
-df.baltot$avg <- df.baltot$total/df.baltot$samples
+df.baltot <- filter(df.nei, fips == '24510') %>%
+        ddply(.(year), summarize, total = sum(Emissions), samples = length(year)) %>%
+        mutate(avg = total/samples)
 
 # plot and print the sum of all PM2.5 measurements in Baltirmore
 png('plot2.png', width = 786)

@@ -1,5 +1,6 @@
 # load libraries
 library(plyr)
+library(dplyr)
 library(ggplot2)
 library(gridExtra)
 
@@ -19,21 +20,23 @@ df.classify <- readRDS(paste0(datadir, 'Source_Classification_Code.rds'))
 # q4
 # Across the United States, how have emissions from coal combustion-related sources changed from 1999–2008?
 
-# filter all sources for combustion in SCC Level One
-df.combust <- df.classify[grep('Combustion', df.classify$SCC.Level.One), ]
-# filter all combustion sources for those using coal or coal-based fuels
-df.combustcoal <- df.combust[grep('[cC]oal', df.combust$SCC.Level.Three), ]
+# filter all sources for combustion in SCC Level One and coal/coal-based fuels in Level Three
+df.combustcoal <- df.classify[grepl('Combustion', df.classify$SCC.Level.One) &
+                                      grepl('[cC]oal', df.classify$SCC.Level.Three), ]
 
 df.coal <- df.nei[df.nei$SCC %in% df.combustcoal$SCC, ]
 df.coal <- merge(df.coal, df.classify, by = 'SCC')
 
 # after checking various facets, combustion by purpose is the most interesting
-df.coalpurp <- ddply(df.coal, .(year, SCC.Level.Two), summarize, total = sum(Emissions))
-colnames(df.coalsource)[2]<-"Purpose"
+df.coalpurp <- df.nei[df.nei$SCC %in% df.combustcoal$SCC, ] %>%
+        merge(df.classify, by = 'SCC') %>%
+        ddply(.(year, SCC.Level.Two), summarize, total = sum(Emissions))
+
+colnames(df.coalpurp)[2]<-"Purpose"
 
 # plot the sum of all PM2.5 measurements for coal combustion in Baltirmore by purpose
 g.coalpurp <- ggplot(df.coalpurp, aes(x=year, y=total, col=Purpose))
-g.coalpurp <- g.coalsource +
+g.coalpurp <- g.coalpurp +
         geom_point() +
         geom_line() +
         labs(title = "Coal Combustion Related PM2.5 in Baltimore",

@@ -1,5 +1,6 @@
 # load libraries
 library(plyr)
+library(dplyr)
 library(ggplot2)
 library(gridExtra)
 
@@ -23,11 +24,9 @@ df.nei <- readRDS(paste0(datadir, 'summarySCC_PM25.rds'))
 
 
 # take baltimore subset of all data
-df.bal <- df.nei[df.nei$fips == '24510', ]
-
-# create new data frame with sum of all measurements by year and type
-df.baltot <- ddply(df.bal, .(year, type), summarize, total = sum(Emissions), samples = length(year))
-df.baltot$avg <- df.baltot$total/df.baltot$samples
+df.baltot <- filter(df.nei, fips == '24510') %>%
+        ddply(.(year, type), summarize, total = sum(Emissions), samples = length(year)) %>%
+        mutate(avg = total/samples)
 
 
 # plot the sum of all PM2.5 measurements in Baltirmore

@@ -1,5 +1,6 @@
 # load libraries
 library(plyr)
+library(dplyr)
 library(ggplot2)
 library(gridExtra)
 
@@ -23,21 +24,17 @@ df.classify <- readRDS(paste0(datadir, 'Source_Classification_Code.rds'))
 # filter for all mobile sources with on- or off-highway use to find mobile vehicles
 # this includes brake, tire, and other sources that I assume are included in emissions
 # can filter for exhaust in Level Four at this point as well
-df.vehiclesources <- df.classify[df.classify$SCC.Level.One == "Mobile Sources", ]
-df.vehiclesources <- df.vehiclesources[grep('[hH]ighway', df.vehiclesources$SCC.Level.Two), ]
+df.vehiclesources <- df.classify[df.classify$SCC.Level.One == "Mobile Sources" &
+                                               grepl('[hH]ighway', df.classify$SCC.Level.Two), ]
 
 # subset the complete dataset for only those SCC related to mobiles vehicles
-df.bal <- df.nei[df.nei$fips == '24510', ]
+df.bal <- filter(df.nei, fips == '24510')
 df.vehicles <- df.bal[df.bal$SCC %in% df.vehiclesources$SCC, ]
 
-# sum all datapoints by year and SCC
-df.vehiclesall <- ddply(df.vehicles, .(year, SCC), summarize, total = sum(Emissions))
-# add remaining SCC columns for factor analysis
-df.vehiclesall <- merge(df.vehiclesall, df.classify, by = 'SCC')
+# sum Emmissions by year and SCC Level Two
+df.vehiclestot <- merge(df.vehicles, df.classify, by = 'SCC') %>%
+        ddply(.(year, SCC.Level.Two), summarize, total = sum(Emissions))
 
-
-# sum, plot, and print all emissions by second level
-df.vehiclestot <- ddply(df.vehiclesall, .(year, SCC.Level.Two), summarize, total = sum(total))
 colnames(df.vehiclestot)[2]<-"Type"
 
 g.vehiclestot <- ggplot(df.vehiclestot, aes(x=year, y=total, col=Type))
@@ -57,6 +54,7 @@ dev.off()
 
 # sum, plot, and print all emissions by third level for more detail
 df.vehiclestype <- ddply(df.vehiclesall, .(year, SCC.Level.Three), summarize, total = sum(total))
+
 colnames(df.vehiclestype)[2]<-"Type"
 
 g.vehiclestype <- ggplot(df.vehiclestype, aes(x=year, y=total, col=Type))

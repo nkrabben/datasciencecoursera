@@ -24,6 +24,7 @@ Temporary Items
 *.xlsx
 *.zip
 *.txt
+*.csv
 
 # R Stuff
 # History files
