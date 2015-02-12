@@ -91,14 +91,13 @@ df.nas <- sum(is.na(df))
 There are `r df.nas` intervals with missing values in the dataset.
 
 ```{r}
-#create new data frame with a column for average values grouped by interval
-df.replace <- df %>%
-        mutate(replace = is.na(steps)) %>%
-        group_by(interval) %>%
-        mutate(steps.mean = mean(steps, na.rm = T))
-
-#where value is NA, use value from the average column
-df.replace[df.replace$replace == T, 1] <- df.replace[df.replace$replace == T, 5]
+#create new data frame with a NA's replaced by interval averages
+df.replace <- df %>% 
+        group_by(interval) %>% 
+        mutate(steps = ifelse(is.na(steps),
+                              #i've seen as.integer recommended here, but I think fractional steps are acceptable.
+                              mean(steps, na.rm=TRUE), 
+                              steps))
 ```
 
 If we set every missing value equal to the mean of its interval, it changes our previous average daily activity patterns. 
