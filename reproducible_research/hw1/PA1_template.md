@@ -95,14 +95,13 @@ There are 2304 intervals with missing values in the dataset.
 
 
 ```r
-#create new data frame with a column for average values grouped by interval
-df.replace <- df %>%
-        mutate(replace = is.na(steps)) %>%
-        group_by(interval) %>%
-        mutate(steps.mean = mean(steps, na.rm = T))
-
-#where value is NA, use value from the average column
-df.replace[df.replace$replace == T, 1] <- df.replace[df.replace$replace == T, 5]
+#create new data frame with a NA's replaced by interval averages
+df.replace <- df %>% 
+        group_by(interval) %>% 
+        mutate(steps = ifelse(is.na(steps),
+                              #i've seen as.integer recommended here, but I think fractional steps are acceptable.
+                              mean(steps, na.rm=TRUE), 
+                              steps))
 ```
 
 If we set every missing value equal to the mean of its interval, it changes our previous average daily activity patterns. 
@@ -153,12 +152,12 @@ head(df.replace.intvl)
 ## Groups: Day
 ## 
 ##       Day            interval       steps
-## 1 Weekend 2015-02-11 00:00:00 0.214622642
-## 2 Weekend 2015-02-11 00:05:00 0.042452830
-## 3 Weekend 2015-02-11 00:10:00 0.016509434
-## 4 Weekend 2015-02-11 00:15:00 0.018867925
-## 5 Weekend 2015-02-11 00:20:00 0.009433962
-## 6 Weekend 2015-02-11 00:25:00 3.511792453
+## 1 Weekend 2015-02-12 00:00:00 0.214622642
+## 2 Weekend 2015-02-12 00:05:00 0.042452830
+## 3 Weekend 2015-02-12 00:10:00 0.016509434
+## 4 Weekend 2015-02-12 00:15:00 0.018867925
+## 5 Weekend 2015-02-12 00:20:00 0.009433962
+## 6 Weekend 2015-02-12 00:25:00 3.511792453
 ```
 
 
@@ -172,7 +171,9 @@ g.replace.intvl <- ggplot(df.replace.intvl, aes(x = interval, y = steps, col = D
         geom_line() +
         scale_x_datetime(breaks = date_breaks("2 hours"), 
                          labels=date_format("%H:%M")) +
-        xlab('Time') + ylab('Steps')
+        xlab('Time') + ylab('Steps') +
+        #I think this makes it harder to read, but the question really wants it.
+        facet_grid(. ~ Day)
 g.replace.intvl
 ```
 
