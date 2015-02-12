@@ -1,98 +1,182 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 
 ## Loading and preprocessing the data
 
 
 ```r
+#kill scientific notation
+options(scipen=999)
+
 if (!file.exists('activity.csv')) {
         unzip('activity.zip', exdir='../')
 }
-```
 
-```
-## Warning in unzip("activity.zip", exdir = "../"): error 1 in extracting
-## from zip file
-```
-
-```r
 df <- read.csv('activity.csv')
-```
 
-```
-## Warning in file(file, "rt"): cannot open file 'activity.csv': No such file
-## or directory
-```
+#convert the intervals into date-time strings
+#this adds today's date to every time, which is incorrect, but will be ignored
+#converting into full date-time objects removes jumps on the x-axis e.g. 855 to 900
+df$interval <- as.POSIXct(strptime(sprintf('%04d', df$interval), '%H%M'))
 
-```
-## Error in file(file, "rt"): cannot open the connection
-```
-
-```r
-df$interval <- sprintf('%04d', df$interval)
-```
-
-```
-## Error in df$interval: object of type 'closure' is not subsettable
-```
-
-```r
-df$time <- strptime(paste(df$date,df$interval), format='%Y-%m-%d %H%M')
-```
-
-```
-## Error in df$date: object of type 'closure' is not subsettable
+#lubridate for date-time evaluation
+#loading packages near first call for to explain use
+library(lubridate)
+df$date <- ymd(df$date)
 ```
 
 ## What is mean total number of steps taken per day?
 
-Most devices registered between 0 and 40 steps per day.
-
 
 ```r
-steps_mean <- mean(df$steps, na.rm=T)
-```
+#chain operations with dplyr
+library(dplyr)
+df.daily <- df %>%
+        group_by(date) %>%
+        summarize(steps.total = sum(steps))
 
-```
-## Error in df$steps: object of type 'closure' is not subsettable
-```
+steps.mean <- mean(df.daily$steps.total, na.rm = T)
+steps.median <- median(df.daily$steps.total, na.rm = T)
 
-```r
-steps_median <- median(df$steps, na.rm=T)
-```
-
-```
-## Error in df$steps: object of type 'closure' is not subsettable
-```
-
-```r
 library(ggplot2)
 
-ggplot(df, aes(x=steps)) + geom_histogram(binwidth=40) + xlab('Number of Steps (grouped by 40)') + ylab('Frequency') + geom_vline(aes(xintercept=steps_median), linetype='dashed', size=1, colour='blue') + geom_vline(aes(xintercept=steps_mean), linetype='dashed', size=1, colour='red')
+g.daily <- ggplot(df.daily, aes(date, steps.total)) +
+        geom_histogram(stat = 'identity') +
+        xlab('Date') + ylab('Steps') +
+        theme(axis.text.x = element_text(angle = 300, hjust = 0)) +
+        #because the mean and median are so close, overlap dashed blue on top of solid red to see both
+        geom_hline(yintercept = steps.mean, linetype = 'solid', color = 'red') +
+        geom_hline(yintercept = steps.median, linetype = 'dashed', color = 'blue')
+
+g.daily
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-2-1.png) 
+
+Most devices registered between 0 and 22,000 steps per day. The mean total of steps taken per day is 10766.1886792 (red line) and the median total is 10765 (blue line).
+
+## What is the average daily activity pattern?
+
+
+```r
+df.intvl <- df %>%
+        group_by(interval) %>%
+        summarize(steps.mean = mean(steps, na.rm = T))
+
+interval.max <- df.intvl[which.max(df.intvl$steps.mean),]
+
+#Question asked for a plot, the code below works, but I like using ggplot so that is what I present.
+#plot(df.intvl, type = 'l')
+
+#scales package for better control of the x-axis labels
+library(scales)
+
+g.intvl <- ggplot(df.intvl, aes(interval, steps.mean)) +
+        geom_line() +
+        scale_x_datetime(breaks = date_breaks("2 hours"), 
+                         labels=date_format("%H:%M")) +
+        xlab('Time') + ylab('Steps') +
+        annotate('text', x = interval.max[[1]], y = interval.max[[2]] + 3,
+                 label = paste('Maximum steps:', interval.max[[2]],'at 8:35'))
+g.intvl
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png) 
+
+The interval with the maximum number of steps is 8:35 (going to work). There are also local maxima at 12:05 (lunch), 3:55 (leaving work?), and 6:50 (going out for the evening?)
+
+## Imputing missing values
+
+```r
+df.nas <- sum(is.na(df))
+```
+
+There are 2304 intervals with missing values in the dataset.
+
+
+```r
+#create new data frame with a column for average values grouped by interval
+df.replace <- df %>%
+        mutate(replace = is.na(steps)) %>%
+        group_by(interval) %>%
+        mutate(steps.mean = mean(steps, na.rm = T))
+
+#where value is NA, use value from the average column
+df.replace[df.replace$replace == T, 1] <- df.replace[df.replace$replace == T, 5]
+```
+
+If we set every missing value equal to the mean of its interval, it changes our previous average daily activity patterns. 
+
+
+```r
+#same code from above with new data frame
+df.replace.daily <- df.replace %>%
+        group_by(date) %>%
+        summarize(steps.total = sum(steps))
+
+steps.replace.mean <- mean(df.daily$steps.total, na.rm = T)
+steps.replace.median <- median(df.daily$steps.total, na.rm = T)
+
+g.replace.daily <- ggplot(df.replace.daily, aes(date, steps.total)) +
+        geom_histogram(stat = 'identity') +
+        xlab('Date') + ylab('Steps') +
+        theme(axis.text.x = element_text(angle = 300, hjust = 0)) +
+        geom_hline(yintercept = steps.replace.mean, linetype = 'solid', color = 'red') +
+        geom_hline(yintercept = steps.replace.median, linetype = 'dashed', color = 'blue')
+
+g.replace.daily
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png) 
+
+However, this doesn't change the mean total of steps taken per day at 10766.1886792 (red line) or the median total at 10765 (blue line) since we added mean values for every interval.
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+To find out, first we assign whether a datapoint happened on a weekday or weekend, and then we aggregrate the means according to both interval and whether it's a weekday or weekend.
+
+
+```r
+df.replace$date <- as.POSIXct(df.replace$date)
+df.replace$Day <- as.factor(wday(df.replace$date, label = T))
+levels(df.replace$Day) <- list('Weekend' = c('Sat', 'Sun'),
+                               'Weekday' = c('Mon', 'Tues', 'Wed', 'Thurs', 'Fri'))
+
+df.replace.intvl <- df.replace %>%
+        group_by(Day, interval) %>%
+        summarize(steps = mean(steps))
+head(df.replace.intvl)
 ```
 
 ```
-## Error: ggplot2 doesn't know how to deal with data of class function
+## Source: local data frame [6 x 3]
+## Groups: Day
+## 
+##       Day            interval       steps
+## 1 Weekend 2015-02-11 00:00:00 0.214622642
+## 2 Weekend 2015-02-11 00:05:00 0.042452830
+## 3 Weekend 2015-02-11 00:10:00 0.016509434
+## 4 Weekend 2015-02-11 00:15:00 0.018867925
+## 5 Weekend 2015-02-11 00:20:00 0.009433962
+## 6 Weekend 2015-02-11 00:25:00 3.511792453
 ```
 
 
 
 
+```r
+#Instructions ask for lattice plot, but I find the side by sides hard to read. Code below does work though.
+#library(lattice)
+#xyplot(steps ~ interval | Day, df.replace.intvl, type = 'l')
+g.replace.intvl <- ggplot(df.replace.intvl, aes(x = interval, y = steps, col = Day)) +
+        geom_line() +
+        scale_x_datetime(breaks = date_breaks("2 hours"), 
+                         labels=date_format("%H:%M")) +
+        xlab('Time') + ylab('Steps')
+g.replace.intvl
+```
 
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png) 
 
-
-
-
-
-
-
-
-
-
-
+In some respects, weekend activity mirrors weekday activity. Local maxima are found around 8:30, 12:00, and 4:00. On the other hand, weekday activity skews strongly towards the morning spike, while weekend activity is distributed more evenly throughout the day.
 
