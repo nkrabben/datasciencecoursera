@@ -1,0 +1,23 @@
+---
+title: "US Storm Analysis"
+author: "Nick Krabbenhoeft"
+date: "February 22, 2015"
+output: html_document
+---
+# Synopsis
+
+# Data Processing
+From the National Weather Service (http://www.weather.gov/) we obtain the Storm Data publication (https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf). Storm Data documents meterological events deemed significant because of damage caused (economic and loss of life), unusualness (summer snow in San Diego), or their connection to previous significant events. Our copy of Storm Data is hosted by the John's Hopkins Reproducible Research Coursera Course.
+
+```{r cache=TRUE, echo=TRUE}
+# download file to a temporary data directory
+download.file('https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2',
+              destfile = '../../../data/StormData.csv.bz2',
+              method = 'curl')
+
+storms <- read.csv(bzfile('../../../data/StormData.csv.bz2'))
+```
+
+
+# Results
+
