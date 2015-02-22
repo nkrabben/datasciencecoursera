@@ -5,19 +5,71 @@ date: "February 22, 2015"
 output: html_document
 ---
 # Synopsis
+In this report, we describe the impact of weather events on US population health and the economy between the year 1950 and 2011. 
 
 # Data Processing
+```{r echo=TRUE, message=FALSE}
+# packages to help analysis
+library(reshape2)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+library(scales)
+```
+
 From the National Weather Service (http://www.weather.gov/) we obtain the Storm Data publication (https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf). Storm Data documents meterological events deemed significant because of damage caused (economic and loss of life), unusualness (summer snow in San Diego), or their connection to previous significant events. Our copy of Storm Data is hosted by the John's Hopkins Reproducible Research Coursera Course.
+
+## Reading in the data
 
 ```{r cache=TRUE, echo=TRUE}
 # download file to a temporary data directory
-download.file('https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2',
-              destfile = '../../../data/StormData.csv.bz2',
-              method = 'curl')
+if (!file.exists('../../../data/StormData.csv.bz2')) {
+        download.file('https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2',
+                      destfile = '../../../data/StormData.csv.bz2',
+                      method = 'curl')
+        }
 
-storms <- read.csv(bzfile('../../../data/StormData.csv.bz2'))
+
+storms <- read.csv(bzfile('../../../data/StormData.csv.bz2'), na.strings = "")
 ```
 
+There are `r col(storms)` columns and `r nrow(storms)` rows is the dataset.
+
+```{r echo=TRUE}
+# column names
+names(storms)
+```
+
+Economic estimates of property and crop damage are encoded with exponents. We convert these to natural numbers.
+
+```{r echo=TRUE}
+# convert text labels to exponents
+storms$PROPDMGEXP <- revalue(storms$PROPDMGEXP,
+                          c('?' = 0, '+' = 0, '-' = 0, 'H' = 2, 'h' = 2,
+                            'K' = 3, 'k' = 3, 'm' = 6, 'M' = 6, 'B' = 9))
+storms$CROPDMGEXP <- revalue(storms$CROPDMGEXP,
+                          c('?' = 0, '+' = 0, '-' = 0, 'H' = 2, 'h' = 2,
+                            'K' = 3, 'k' = 3, 'm' = 6, 'M' = 6, 'B' = 9))
+
+# multiply damage ammounts by their exponents to obtain full dollar estimates
+storms$PROPDMG <- as.numeric(storms$PROPDMG) * 10^as.numeric(storms$PROPDMGEXP)
+storms$CROPDMG <- as.numeric(storms$CROPDMG) * 10^as.numeric(storms$CROPDMGEXP)
+```
+
+Brief summaries of health and economic variables.
+```{r echo=TRUE}
+summary(storms$FATALITIES)
+summary(storms$INJURIES)
+summary(storms$PROPDMG)
+summary(storms$CROPDMG)
+```
+
+Property and crop damage is unreported for over half of events. NWS is only required by law to report damage related to floods.
 
 # Results
+
+Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+Across the United States, which types of events have the greatest economic consequences?
+
 
