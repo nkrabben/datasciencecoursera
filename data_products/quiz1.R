@@ -5,3 +5,8 @@ myPlot <- function(s) {
         abline(0, s)
 }
 manipulate(myPlot(s), s = slider(0, 2, step = 0.1))
+
+#q2
+library(rCharts)
+data(airquality)
+dTable(airquality, sPaginationType = "full_numbers")
