@@ -1,14 +1,19 @@
 ---
-title: "US Storm Analysis"
+title: "Damages Caused by US Storms"
 author: "Nick Krabbenhoeft"
 date: "February 22, 2015"
-output: html_document
+output:
+  html_document:
+    pandoc_args: [
+      "+RTS", "-K64m",
+      "-RTS"
+    ]
 ---
 # Synopsis
-In this report, we describe the impact of weather events on US population health and the economy between the year 1950 and 2011. 
+In this report, we describe the impact of weather events on US population health and the economy between the year 1950 and 2011. We identify tornadoes and hurricanes as the most damaging weather events on average in both categories. However, they present different types of impact. Tornadoes occur frequently and cause large amounts of damage, whereas hurricanes are less frequent and cause massive amounts. Responses to these events must be planned in accordance with these differences.
 
 # Data Processing
-```{r echo=TRUE, message=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 # packages to help analysis
 library(reshape2)
 library(dplyr)
@@ -30,19 +35,41 @@ if (!file.exists('../../../data/StormData.csv.bz2')) {
         }
 
 
-storms <- read.csv(bzfile('../../../data/StormData.csv.bz2'), na.strings = "")
+storms <- read.csv(bzfile('../../../data/StormData.csv.bz2'), na.strings = "", comment.char = "", nrows = 1000000)
+# select subset of dataset relating to health and economy
+storms <- select(storms, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+
+head(storms)
 ```
 
-There are `r col(storms)` columns and `r nrow(storms)` rows is the dataset.
+There are `r ncol(storms)` columns and `r nrow(storms)` rows is the dataset. In order to see a high level aggregation of the data, we group together types of events.
 
-```{r echo=TRUE}
-# column names
-names(storms)
+```{r}
+storms$EVTYPE <- tolower(as.character(storms$EVTYPE))
+storms$EVTYPE[grep('waterspout', storms$EVTYPE)] <- 'waterspout'
+storms$EVTYPE[grep('tstm wind', storms$EVTYPE)] <- 'tstm wind'
+storms$EVTYPE[grep('tornad|funnel', storms$EVTYPE)] <- 'tornado'
+storms$EVTYPE[grep('thunder', storms$EVTYPE)] <- 'thunderstorm'
+storms$EVTYPE[grep('snow|blizzard', storms$EVTYPE)] <- 'snow'
+storms$EVTYPE[grep('lightn', storms$EVTYPE)] <- 'lightning'
+storms$EVTYPE[grep('ice|hail|frost', storms$EVTYPE)] <- 'ice'
+storms$EVTYPE[grep('flood|fld', storms$EVTYPE)] <- 'flooding'
+storms$EVTYPE[grep('cold|wint|freez|sleet', storms$EVTYPE)] <- 'cold'
+storms$EVTYPE[grep('dry micr', storms$EVTYPE)] <- 'dry microburst'
+storms$EVTYPE[grep('excessive|extreme|record|unseasonably', storms$EVTYPE)] <- 'extreme'
+storms$EVTYPE[grep('heavy (mix|rain|pre)', storms$EVTYPE)] <- 'heavy rain'
+storms$EVTYPE[grep('hurricane', storms$EVTYPE)] <- 'hurricane'
+storms$EVTYPE[grep('summary', storms$EVTYPE)] <- 'summary'
+storms$EVTYPE[grep('fire', storms$EVTYPE)] <- 'fire'
+storms$EVTYPE[grep('wind', storms$EVTYPE)] <- 'wind'
+
+storms$EVTYPE[grep('surf|surge|tsunami|current|sea', storms$EVTYPE)] <- 'high wind'
+storms$EVTYPE<-factor(storms$EVTYPE)
 ```
 
 Economic estimates of property and crop damage are encoded with exponents. We convert these to natural numbers.
 
-```{r echo=TRUE}
+```{r echo=TRUE, message=FALSE}
 # convert text labels to exponents
 storms$PROPDMGEXP <- revalue(storms$PROPDMGEXP,
                           c('?' = 0, '+' = 0, '-' = 0, 'H' = 2, 'h' = 2,
@@ -52,24 +79,91 @@ storms$CROPDMGEXP <- revalue(storms$CROPDMGEXP,
                             'K' = 3, 'k' = 3, 'm' = 6, 'M' = 6, 'B' = 9))
 
 # multiply damage ammounts by their exponents to obtain full dollar estimates
-storms$PROPDMG <- as.numeric(storms$PROPDMG) * 10^as.numeric(storms$PROPDMGEXP)
-storms$CROPDMG <- as.numeric(storms$CROPDMG) * 10^as.numeric(storms$CROPDMGEXP)
+storms$PROPDMGNUM <- as.numeric(storms$PROPDMG) * 10^as.numeric(storms$PROPDMGEXP)
+storms$CROPDMGNUM <- as.numeric(storms$CROPDMG) * 10^as.numeric(storms$CROPDMGEXP)
 ```
 
 Brief summaries of health and economic variables.
+
 ```{r echo=TRUE}
 summary(storms$FATALITIES)
 summary(storms$INJURIES)
-summary(storms$PROPDMG)
-summary(storms$CROPDMG)
+summary(storms$PROPDMGNUM)
+summary(storms$CROPDMGNUM)
 ```
 
 Property and crop damage is unreported for over half of events. NWS is only required by law to report damage related to floods.
 
+Finally, we aggregate all data by event type, adding together the damage estimates and counting the number of events. We also filter out events that have less than 10 occurences in order to focus on more frequent events and calculate the average impact per event. Because some events have mandatory reporting, such as floods, and others do not. The average is the best measure to understand the impact per event type.
+
+```{r}
+storms.agg <- ddply(storms, .(EVTYPE), summarize,
+                    total = length(EVTYPE),
+                    injury = sum(INJURIES, na.rm = T),
+                    fatality = sum(FATALITIES, na.rm = T),
+                    propdmg = sum(PROPDMGNUM, na.rm = T),
+                    cropdmg = sum(CROPDMGNUM, na.rm = T))
+
+storms.agg <- storms.agg %>%
+        # filter low occurence events
+        filter(total > 10) %>%
+        # find average impact per event
+        mutate(healthavg = (injury+fatality)/total,
+               econavg = (propdmg +cropdmg)/total)
+head(storms.agg)
+```
+
 # Results
 
-Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+## Across the United States, which types of events are most harmful with respect to population health?
+``` {r fig.width=10, fig.height=6}
+ggplot(storms.agg) +
+        geom_point(aes(total, healthavg)) +
+        geom_point(data = filter(storms.agg, healthavg > 4),
+                   aes(total, healthavg), col = 'dark orange', size = 4) +
+        geom_point(data = filter(storms.agg, healthavg > 1, total > 10000),
+                   aes(total, healthavg), col = 'red', size = 4) +
+        scale_x_log10() + scale_y_log10() +
+        labs(x = 'Number of Events (log scale)',
+             y = 'Average Number of Injuries or Fatalities (log scale)') +
+        annotate('text', x = 100, y = 2.5,
+                 label = 'Glaze/Heat Wave/Hurricane:\nMore than 4 deaths/injuries\n per event') +
+        annotate('text', x = 60000, y = .6,
+                 label = 'Tornadoes:\nMore than 1 death/injury in\n each of more than 10,000 events')
+```
 
-Across the United States, which types of events have the greatest economic consequences?
+The graph compares the number of injuries and fatalities against the number of events. Because of the extreme scales of the data, both are charted on a log scale. The group of orange points highlights the events with the greatest health impact per event: `r filter(storms.agg, healthavg > 4)$EVTYPE`. The red point highlights tornadoes, which injure or kill at least 1 person per occurence.
 
+```{r echo=TRUE}
+filter(storms.agg, healthavg > 4)
+filter(storms.agg, healthavg > 1, total > 10000)
+```
+
+## Across the United States, which types of events have the greatest economic consequences?
+``` {r fig.width=10, fig.height=6}
+ggplot(storms.agg) +
+        geom_point(aes(total, econavg)) +
+        geom_point(data = filter(storms.agg, econavg > 100000000),
+                   aes(total, econavg), col = 'dark orange', size = 4) +
+        geom_point(data = filter(storms.agg, econavg > 1000000, total > 10000),
+                   aes(total, econavg), col = 'red', size = 4) +
+        scale_x_log10() + scale_y_log10(label = dollar) +
+        labs(x = 'Number of Events (log scale)',
+             y = 'Average Property and Crop Damage (log scale)') +
+        annotate('text', x = 200, y = 700000000, 
+                 label = 'High Wind/Hurricane/Tropical Storm/Typhoon\nMore than $100 million in damage\n per event') +
+        annotate('text', x = 30000, y = 800000,
+                 label = 'Cold/Flooding/Heavy Rain/Tornadoes\nMore than $1 million in damage in\n each of more than 10,000 events')
+```
+
+The graph above compares the property and crop damage against the number of events. Because of the extreme scales of the data, both are charted on a log scale. The group of orange points highlights the events with the greatest economic impact per event: `r filter(storms.agg, econavg > 100000000)$EVTYPE`. The group of red point highlights the most freqent events which average more than $1,000,000 in damages.
+```{r echo=TRUE}
+filter(storms.agg, econavg > 100000000)
+filter(storms.agg, econavg > 1000000, total > 10000)
+```
+
+# Conclusions
+From the above analysis, it's clear that tornadoes are the most damaging weather event in the US. They are very freqent. They regularly injure or kill people. They cause more than $8,000,000 in damage per event. Although less frequent, the effect of hurricanes are more intense. On average, they cause nearly $3 billion in damage and injure or kill at least 7 people.
+
+These two types of events require different strategies to mitigate their effects. The freqency and geographic spread of tornadoes should be addressed with widespread funding for distributed emergency services, hurricane preparation can be more regionally concentrated.
 
