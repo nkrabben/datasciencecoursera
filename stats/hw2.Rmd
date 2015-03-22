@@ -1,0 +1,60 @@
+---
+title: "Tooth Growth Analysis"
+author: "Nick Krabbenhoeft"
+date: "March 22, 2015"
+output: pdf_document
+---
+
+## Summary
+We analyze the results of an experiment using differing doses and delivery mechanisms of Vitamin C for a group guinea pigs (n=10). Analysis shows that tooth grows tends to correlate with higher doses of Vitamin C. However, delivery mechanisms impact the amount of tooth growth that may be expected at a dosage. This experiment suggests a limit to orange juice as a delivery mechanism around 2mg while more work is needed to find a similar limit for ascorbic acid.
+## Tooth Growth Data
+```{r}
+library(plyr)
+tg <- ToothGrowth
+tg$supp <- revalue(tg$supp, c('OJ' = 'Orange Juice', 'VC' = 'Ascorbic Acid'))
+tg$dose <- as.factor(tg$dose)
+tg$exp <- rep(1:6, each=10)
+sample.number <- nrow(tg)
+sample.variables <- names(tg)
+```
+
+According to the documentation, the sample dataset records the length of teeth of 10 guinea pigs in response to 3 dose levels of Vitamin C (.5, 1, and 2mg) through 2 delivery mechanisms. The sample dataset contains `r sample.number` observations.
+
+```{r}
+summary(tg[c(2,3)])
+```
+
+The delivery mechanisms ('supp') and dosages ('dose') are equally represented for each guinea pig. Measurements are grouped by each combination of delivery and mechanism. There is no control measurement. Any testing will only be able to compare methods of Vitamin C delivery effectiveness against one another instead of non-Vitamin C supplemented guinea pigs.
+
+
+## Tooth Growth Compared to Delivery Mechanism and Dose
+Because we only have ten samples for each combination of delivery mechanism and dose, we use a t-test to generate 95% confidence intervals for the mean of each combination. Comparing these intervals against each other along with the distribution of each sample, we see several trends.
+
+```{r}
+
+sample.intervals <- data.frame(t(sapply(seq(1:6), function(x) t.test(tg$len[tg$exp ==x ])$conf)))
+sample.intervals$mean <- sample.intervals$X1 + (sample.intervals$X2 - sample.intervals$X1)/2
+sample.intervals$supp <- as.factor(c(rep('Ascorbic Acid', 3), rep('Orange Juice', 3) ))
+sample.intervals$dose <- as.factor(c('0.5', '1', '2'))
+
+library(ggplot2)
+ggplot() +
+        geom_violin(data = tg, aes(dose, len), fill = '#9e0e40') +
+        geom_point(data = sample.intervals,
+                   aes(x = dose, y = mean), col = 'white')+
+        geom_errorbar(data = sample.intervals,
+                      aes(x = dose, ymin=X1, ymax=X2), width=0.25, col = 'white') +
+        facet_grid( ~ supp) +
+        labs(x = 'Dose (mg)', y = 'Length')
+        
+
+```
+
+1. Increased tooth growth generally correlates with larger doses of Vitamin C.
+2. At a 0.5mg dosage of Vitamin C, the guinea pigs that received orange juice had more teeth growth than those that received ascorbic acid.
+3. At 2mg dosage of Vitamin C, the guinea pigs average tooth growth was the same, although the confidence interval for ascorbic acid is wider.
+4. The difference in tooth growth between 1mg and 2mg of Vitamin C when delivered by orange juice is not statistically significatn.
+5. Every increase of Vitamin C dosage delivered by ascorbic acid correlates with a statiscally significant increase in tooth growth.
+
+## Conclusions
+Vitamin C appears to be correlated with increased tooth growth, and this effect can be further modified by the delivery mechanism. There appear to be properties of orange juice that might cause greater tooth growth in guinea pigs than ascorbic acid at lower doses. At the same time, there appear to be properties that subsequently inhibit tooth growth relative ascorbic acid. Orange juice may not be effective above 1-2mg of Vitamin C. More research is needed to discover the underlying causes and what types of decay these trends exhibit.
